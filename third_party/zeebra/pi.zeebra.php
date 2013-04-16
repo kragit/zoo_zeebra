@@ -2,7 +2,7 @@
 
 $plugin_info = array(
 						'pi_name'			=> 'Zeebra',
-						'pi_version'		=> '1.1.1',
+						'pi_version'		=> '1.1.2',
 						'pi_author'			=> 'Filip Vanderstappen',
 						'pi_author_url'		=> 'http://filipvanderstappen.be/',
 						'pi_description'	=> 'Modified by Adam Kragt (<a href="http://twitter.com/kragit" target="_blank">http://twitter.com/kragit</a>)',
@@ -27,12 +27,15 @@ class Zeebra {
 	var $tag = '{zeebra}';
 	var $tagTips = '{zeebra:tips}';
 	var $tagInt = '{zeebra:interval}';
+	var $tagOnly = '{zeebra:only}';
 	var $tagTotal = 0;
 	var $tagTotalTips = 0;
 	var $tagTotalInt = 0;
+	var $tagTotalOnly = 0;
 	var $tagCount = 1;
 	var $tagCountTips = 1;
 	var $tagCountInt = 1;
+	var $tagCountOnly = 1;
 	var $attrTips;
 	var $attrTipsClass;
 	var $attrInterval;
@@ -51,6 +54,7 @@ class Zeebra {
         $this->tagTotal = count(explode($this->tag, $tagdata)) - 1;
         $this->tagTotalTips = count(explode($this->tagTips, $tagdata)) - 1;
         $this->tagTotalInt = count(explode($this->tagInt, $tagdata)) - 1;
+        $this->tagTotalOnly = count(explode($this->tagOnly, $tagdata)) - 1;
 		$this->return_data = '';
 		
 		// Get attributes
@@ -103,8 +107,10 @@ class Zeebra {
 	    // Kill the zeebra and get it replaced with our classes
 	    $tagdata = substr_replace($tagdata, implode(" ", $tmpClass), $tmpPos, strlen($this->tag));
 	    
-	    // Hunt for other zeebras
+	    // Prepare to hunt for other zeebras
 	    $this->tagCount++;
+
+	    // Hunt next type of zeebra
 	    return $this->parseData($tagdata);
 	}
 
@@ -134,8 +140,10 @@ class Zeebra {
 	    // Kill the zeebra:interval and get it replaced with our classes
 	    $tagdata = substr_replace($tagdata, implode(" ", $tmpClassInt), $tmpPosInt, strlen($this->tagInt));
 
-	    // Hunt for other zeebra:intervals
+	    // Prepare to hunt for other zeebra:intervals
 	    $this->tagCountInt++;
+
+	    // Hunt next type of zeebra
 	    return $this->parseIntData($tagdata);
 	}
 
@@ -153,13 +161,13 @@ class Zeebra {
 	    //Go catch them
 	    else {
 	    	// If it's your first zeebra:tips... shoot it!
-	        if($this->tagCountTips == 1 && $this->attrTips == 'yes')
+	        if($this->tagCountTips == 1)
 	        {
 	            array_push($tmpClassTips, $this->attrTipsClass[0]);
 	        }
 	        
 	        // If it's your last zeebra:tips... finalize it.
-	        if($this->tagCountTips === $this->tagTotalTips && $this->attrTips == 'yes')
+	        if($this->tagCountTips === $this->tagTotalTips)
 	        {
 	            array_push($tmpClassTips, $this->attrTipsClass[1]);
 	        }
@@ -168,8 +176,45 @@ class Zeebra {
 	    //Kill the zeebra:tips and get it replaced with our classes
 	    $tagdata = substr_replace($tagdata, implode(" ", $tmpClassTips), $tmpPosTips, strlen($this->tagTips));
 
-	    // Hunt for other zeebra:tips
+	    // Prepare to hunt for other zeebra:tips
 	    $this->tagCountTips++;
+
+	    // Hunt next type of zeebra
+	    return $this->parseOnlyData($tagdata);
+	}
+
+	function parseOnlyData($tagdata)
+	{
+		// Search for the first zeebra:only in the wild
+	    $tmpPosOnly = stripos($tagdata, $this->tagOnly);
+	    $tmpClassOnly = array();
+
+	    // If no other zeebra:only are found in the bushes, go away
+	    if($tmpPosOnly === false){
+	    	return $tagdata;
+	    }
+	    //Go catch them
+	    else {
+	    	// If it's your only zeebra:only... say so!
+	        if($this->tagTotalOnly == 1)
+	        {
+	            array_push($tmpClassOnly, "yes");
+	        }
+	        
+	        // If there are others... let us know.
+	        if($this->tagTotalOnly > 1)
+	        {
+	            array_push($tmpClassOnly, "no");
+	        }
+	    }
+
+	    //Kill the zeebra:tips and get it replaced with our classes
+	    $tagdata = substr_replace($tagdata, implode(" ", $tmpClassOnly), $tmpPosOnly, strlen($this->tagOnly));
+
+	    // Prepare to hunt for other zeebra:only
+	    $this->tagCountOnly++;
+
+	    // Loop back around, begin the hunt for zeebras again!
 	    return $this->parseIntData($tagdata);
 	}
 	
@@ -240,6 +285,7 @@ class Zeebra {
 
         {zeebra:tips} will output *only* the tips value.
         {zeebra:interval} will output *only* the interval value.
+        {zeebra:only} will output 'yes' if total count is 1, 'no' if count is > 1.
 
 
 		<?php
